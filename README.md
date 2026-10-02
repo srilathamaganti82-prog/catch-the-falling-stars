@@ -1,15 +1,12 @@
-# Catch the Falling Stars
+# Catch the Falling Stars — Task 3
 
-A beginner-friendly playable game prototype created for the EdVyro Game Development internship task.
+Updated playable prototype for Game State, Progression, and Persistence.
 
-## How to play
-Open `index.html` in a web browser.
+Controls: Left/Right arrows to move, P to pause/resume, Enter to restart after Win/Lose.
 
-- Use Left/Right Arrow keys to move.
-- Catch falling stars to score points.
-- Miss 3 stars to end the game.
-- Press Enter to restart.
+Rules: +1 per caught star, level increases every 5 points, 3 misses = Lose, 10 points = Win. Highest score is saved locally.
 
-## Files
-- `index.html` — playable prototype
-- `Game_Design_Document.md` — one-page game design document
+Files:
+- index.html
+- STATE_DIAGRAM.md
+- EDGE_CASE_TEST_CHECKLIST.md

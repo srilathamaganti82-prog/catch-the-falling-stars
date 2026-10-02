@@ -3,117 +3,61 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Catch the Falling Stars</title>
+<title>Catch the Falling Stars - Task 3</title>
 <style>
-  body { margin:0; font-family:Arial,sans-serif; background:#111827; color:white; text-align:center; }
-  h1 { margin:18px 0 8px; }
-  #info { font-size:18px; margin-bottom:10px; }
-  canvas { background:#0b1220; border:2px solid white; max-width:92vw; height:auto; }
-  p { max-width:600px; margin:12px auto; padding:0 12px; }
+body{margin:0;font-family:Arial,sans-serif;background:#111827;color:white;text-align:center}
+h1{margin:16px 0 8px}.info{font-size:18px;margin-bottom:8px}
+button{padding:10px 18px;margin:4px;font-size:16px;cursor:pointer}
+canvas{background:#0b1220;border:2px solid white;max-width:94vw;height:auto}
+p{max-width:700px;margin:10px auto;padding:0 12px}
 </style>
 </head>
 <body>
 <h1>Catch the Falling Stars</h1>
-<div id="info">Score: <span id="score">0</span> | Misses: <span id="misses">0</span>/3</div>
+<div class="info">State: <b id="state">START</b> | Score: <b id="score">0</b> | Level: <b id="level">1</b> | High Score: <b id="high">0</b></div>
+<button id="startBtn">Start Game</button>
+<button id="pauseBtn">Pause / Resume</button>
+<button id="restartBtn">Restart</button>
+<br>
 <canvas id="game" width="700" height="450"></canvas>
-<p>Use the Left and Right arrow keys to move the player. Catch the falling stars to increase your score. Miss 3 stars and the game ends. Press Enter to restart.</p>
+<p>Catch stars with Left/Right arrows. Press P to pause/resume. Reach 10 points to WIN. Missing 3 stars causes LOSE. High score is saved in your browser.</p>
 <script>
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
-const scoreEl = document.getElementById("score");
-const missesEl = document.getElementById("misses");
-
-let player, star, score, misses, gameOver, keys;
-
-function reset() {
-  player = { x: 320, y: 400, w: 70, h: 18, speed: 7 };
-  star = { x: Math.random()*660+20, y: -15, r: 10, speed: 3.5 };
-  score = 0; misses = 0; gameOver = false; keys = {};
-  updateInfo();
+const c=document.getElementById("game"),ctx=c.getContext("2d");
+const stateEl=document.getElementById("state"),scoreEl=document.getElementById("score"),levelEl=document.getElementById("level"),highEl=document.getElementById("high");
+let state="START",score=0,level=1,misses=0,keys={},highScore=Number(localStorage.getItem("catchStarsHighScore")||0);
+let player={x:315,y:400,w:70,h:18,speed:7},star={x:350,y:-20,r:10,speed:3.5};
+function setState(s){state=s;stateEl.textContent=s}
+function info(){scoreEl.textContent=score;levelEl.textContent=level;highEl.textContent=highScore}
+function resetStar(){star.x=Math.random()*(c.width-40)+20;star.y=-20;star.speed=3+Math.random()*1.5+level*.6}
+function startGame(){score=0;level=1;misses=0;player.x=315;resetStar();setState("PLAYING");info()}
+function restart(){startGame()}
+function pause(){if(state==="PLAYING")setState("PAUSED");else if(state==="PAUSED")setState("PLAYING")}
+function winLose(){if(score>=10)setState("WIN");else if(misses>=3)setState("LOSE")}
+document.getElementById("startBtn").onclick=startGame;
+document.getElementById("pauseBtn").onclick=pause;
+document.getElementById("restartBtn").onclick=restart;
+document.addEventListener("keydown",e=>{keys[e.key]=true;if(e.key.toLowerCase()==="p")pause();if((state==="WIN"||state==="LOSE")&&e.key==="Enter")restart()});
+document.addEventListener("keyup",e=>keys[e.key]=false);
+function update(){
+ if(state!=="PLAYING")return;
+ if(keys.ArrowLeft)player.x-=player.speed;
+ if(keys.ArrowRight)player.x+=player.speed;
+ player.x=Math.max(0,Math.min(c.width-player.w,player.x));
+ star.y+=star.speed;
+ let caught=star.y+star.r>=player.y&&star.y-star.r<=player.y+player.h&&star.x>=player.x&&star.x<=player.x+player.w;
+ if(caught){score++;if(score%5===0)level++;resetStar();if(score>highScore){highScore=score;localStorage.setItem("catchStarsHighScore",highScore)}info();winLose()}
+ else if(star.y-star.r>c.height){misses++;resetStar();info();winLose()}
 }
-
-function updateInfo() {
-  scoreEl.textContent = score;
-  missesEl.textContent = misses;
+function drawStar(x,y,r){ctx.beginPath();for(let i=0;i<10;i++){let a=-Math.PI/2+i*Math.PI/5,rr=i%2===0?r:r*.45,px=x+Math.cos(a)*rr,py=y+Math.sin(a)*rr;i?ctx.lineTo(px,py):ctx.moveTo(px,py)}ctx.closePath();ctx.fillStyle="white";ctx.fill()}
+function draw(){
+ ctx.clearRect(0,0,c.width,c.height);
+ if(state!=="START")drawStar(star.x,star.y,star.r);
+ ctx.fillStyle="#60a5fa";ctx.fillRect(player.x,player.y,player.w,player.h);
+ ctx.fillStyle="white";ctx.font="18px Arial";ctx.fillText("PLAYER",player.x+8,player.y+14);
+ if(state==="START"||state==="PAUSED"||state==="WIN"||state==="LOSE"){ctx.fillStyle="rgba(0,0,0,.65)";ctx.fillRect(0,0,c.width,c.height);ctx.fillStyle="white";ctx.font="34px Arial";let msg=state==="START"?"Press Start":state==="PAUSED"?"PAUSED":state==="WIN"?"YOU WIN!":"GAME OVER";ctx.fillText(msg,270,205);ctx.font="20px Arial";ctx.fillText(state==="WIN"||state==="LOSE"?"Press Enter or Restart":"Use the button to continue",225,245)}
 }
-
-function newStar() {
-  star.x = Math.random() * (canvas.width - 40) + 20;
-  star.y = -15;
-  star.speed = 3 + Math.random() * 2;
-}
-
-document.addEventListener("keydown", e => {
-  keys[e.key] = true;
-  if (gameOver && e.key === "Enter") reset();
-});
-document.addEventListener("keyup", e => keys[e.key] = false);
-
-function update() {
-  if (gameOver) return;
-  if (keys["ArrowLeft"]) player.x -= player.speed;
-  if (keys["ArrowRight"]) player.x += player.speed;
-  player.x = Math.max(0, Math.min(canvas.width-player.w, player.x));
-
-  star.y += star.speed;
-
-  const caught = star.y + star.r >= player.y &&
-                 star.y - star.r <= player.y + player.h &&
-                 star.x >= player.x && star.x <= player.x + player.w;
-
-  if (caught) {
-    score++;
-    newStar();
-    updateInfo();
-  } else if (star.y - star.r > canvas.height) {
-    misses++;
-    updateInfo();
-    if (misses >= 3) gameOver = true;
-    else newStar();
-  }
-}
-
-function drawStar(x, y, r) {
-  ctx.beginPath();
-  for (let i=0; i<10; i++) {
-    const a = -Math.PI/2 + i*Math.PI/5;
-    const rr = i%2===0 ? r : r*0.45;
-    const px = x + Math.cos(a)*rr, py = y + Math.sin(a)*rr;
-    if (i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
-  }
-  ctx.closePath();
-  ctx.fillStyle = "white";
-  ctx.fill();
-}
-
-function draw() {
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  drawStar(star.x, star.y, star.r);
-  ctx.fillStyle = "#60a5fa";
-  ctx.fillRect(player.x, player.y, player.w, player.h);
-  ctx.fillStyle = "white";
-  ctx.font = "18px Arial";
-  ctx.fillText("PLAYER", player.x+8, player.y+14);
-
-  if (gameOver) {
-    ctx.fillStyle = "rgba(0,0,0,.65)";
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-    ctx.fillStyle = "white";
-    ctx.font = "34px Arial";
-    ctx.fillText("Game Over", 255, 205);
-    ctx.font = "20px Arial";
-    ctx.fillText("Final Score: " + score, 280, 245);
-    ctx.fillText("Press Enter to restart", 245, 285);
-  }
-}
-
-function loop() {
-  update();
-  draw();
-  requestAnimationFrame(loop);
-}
-reset();
-loop();
+function loop(){update();draw();requestAnimationFrame(loop)}
+info();loop();
 </script>
 </body>
 </html>
