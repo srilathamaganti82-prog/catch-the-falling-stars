@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catch the Falling Stars</title>
+<style>
+  body { margin:0; font-family:Arial,sans-serif; background:#111827; color:white; text-align:center; }
+  h1 { margin:18px 0 8px; }
+  #info { font-size:18px; margin-bottom:10px; }
+  canvas { background:#0b1220; border:2px solid white; max-width:92vw; height:auto; }
+  p { max-width:600px; margin:12px auto; padding:0 12px; }
+</style>
+</head>
+<body>
+<h1>Catch the Falling Stars</h1>
+<div id="info">Score: <span id="score">0</span> | Misses: <span id="misses">0</span>/3</div>
+<canvas id="game" width="700" height="450"></canvas>
+<p>Use the Left and Right arrow keys to move the player. Catch the falling stars to increase your score. Miss 3 stars and the game ends. Press Enter to restart.</p>
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const scoreEl = document.getElementById("score");
+const missesEl = document.getElementById("misses");
+
+let player, star, score, misses, gameOver, keys;
+
+function reset() {
+  player = { x: 320, y: 400, w: 70, h: 18, speed: 7 };
+  star = { x: Math.random()*660+20, y: -15, r: 10, speed: 3.5 };
+  score = 0; misses = 0; gameOver = false; keys = {};
+  updateInfo();
+}
+
+function updateInfo() {
+  scoreEl.textContent = score;
+  missesEl.textContent = misses;
+}
+
+function newStar() {
+  star.x = Math.random() * (canvas.width - 40) + 20;
+  star.y = -15;
+  star.speed = 3 + Math.random() * 2;
+}
+
+document.addEventListener("keydown", e => {
+  keys[e.key] = true;
+  if (gameOver && e.key === "Enter") reset();
+});
+document.addEventListener("keyup", e => keys[e.key] = false);
+
+function update() {
+  if (gameOver) return;
+  if (keys["ArrowLeft"]) player.x -= player.speed;
+  if (keys["ArrowRight"]) player.x += player.speed;
+  player.x = Math.max(0, Math.min(canvas.width-player.w, player.x));
+
+  star.y += star.speed;
+
+  const caught = star.y + star.r >= player.y &&
+                 star.y - star.r <= player.y + player.h &&
+                 star.x >= player.x && star.x <= player.x + player.w;
+
+  if (caught) {
+    score++;
+    newStar();
+    updateInfo();
+  } else if (star.y - star.r > canvas.height) {
+    misses++;
+    updateInfo();
+    if (misses >= 3) gameOver = true;
+    else newStar();
+  }
+}
+
+function drawStar(x, y, r) {
+  ctx.beginPath();
+  for (let i=0; i<10; i++) {
+    const a = -Math.PI/2 + i*Math.PI/5;
+    const rr = i%2===0 ? r : r*0.45;
+    const px = x + Math.cos(a)*rr, py = y + Math.sin(a)*rr;
+    if (i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+  }
+  ctx.closePath();
+  ctx.fillStyle = "white";
+  ctx.fill();
+}
+
+function draw() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  drawStar(star.x, star.y, star.r);
+  ctx.fillStyle = "#60a5fa";
+  ctx.fillRect(player.x, player.y, player.w, player.h);
+  ctx.fillStyle = "white";
+  ctx.font = "18px Arial";
+  ctx.fillText("PLAYER", player.x+8, player.y+14);
+
+  if (gameOver) {
+    ctx.fillStyle = "rgba(0,0,0,.65)";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle = "white";
+    ctx.font = "34px Arial";
+    ctx.fillText("Game Over", 255, 205);
+    ctx.font = "20px Arial";
+    ctx.fillText("Final Score: " + score, 280, 245);
+    ctx.fillText("Press Enter to restart", 245, 285);
+  }
+}
+
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+reset();
+loop();
+</script>
+</body>
+</html>
